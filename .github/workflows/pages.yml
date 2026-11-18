@@ -1,0 +1,60 @@
+name: Deploy talks to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Pinned: Playwright (Chromium for the PDF export, `download: true`) does not support ubuntu-latest = 26.04 yet
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build all talks
+        run: npm run build
+
+      - name: Verify build output
+        run: |
+          test -f dist/index.html
+          for talk in talks/*/slides.md
+          do
+            slug="$(basename "$(dirname "$talk")")"
+            test -f "dist/$slug/index.html"
+            test -f "dist/$slug/presenter/index.html"
+            test -f "dist/$slug/overview/index.html"
+            test -f "dist/$slug/slides.pdf"
+          done
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

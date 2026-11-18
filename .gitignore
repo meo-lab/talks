@@ -1,0 +1,10 @@
+node_modules
+dist
+.slidev
+.slidev-build
+tmp-slidev-build
+tmp-course-info
+*.log
+.vscode
+.DS_Store
+tmp-slidev-build
